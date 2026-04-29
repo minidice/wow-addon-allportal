@@ -4,17 +4,18 @@ AllPortal.addonName = addonName
 
 local eventFrame = CreateFrame("Frame")
 
+-- GET_ITEM_INFO_RECEIVED was removed in Dragonflight (10.0); registering a
+-- removed event throws a Lua error that stops the entire file from executing.
+-- BAG_UPDATE_COOLDOWN was also removed in 10.0; use SPELL_UPDATE_COOLDOWN instead.
+-- PLAYER_REGEN_DISABLED: we queue on lockdown; no need to listen for it explicitly.
 local EVENTS = {
   "PLAYER_LOGIN",
   "PLAYER_ENTERING_WORLD",
-  "GET_ITEM_INFO_RECEIVED",
   "BAG_UPDATE_DELAYED",
   "PLAYER_EQUIPMENT_CHANGED",
   "TOY_UPDATED",
   "SPELLS_CHANGED",
   "SPELL_UPDATE_COOLDOWN",
-  "BAG_UPDATE_COOLDOWN",
-  "PLAYER_REGEN_DISABLED",
   "PLAYER_REGEN_ENABLED",
 }
 
@@ -60,19 +61,21 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     print("|cff00ff00AllPortal|r v" .. (GetAddOnMetadata(addonName, "Version") or "?") .. " loaded")
 
   elseif event == "PLAYER_ENTERING_WORLD" then
+    -- Warm the item cache so icons are ready. C_Item.RequestLoadItemDataByID is
+    -- the correct API in 10.0+; fall back to GetItemInfo for older builds.
+    local requestFn = (C_Item and C_Item.RequestLoadItemDataByID) or GetItemInfo
     for _, cat in ipairs(data.categories) do
       for entry in data.IterEntries(cat.id) do
         if entry.type ~= "spell" and entry.id and entry.id > 0 then
-          GetItemInfo(entry.id)
+          requestFn(entry.id)
         end
       end
     end
-
-  elseif event == "GET_ITEM_INFO_RECEIVED" then
-    local itemID = ...
+    -- Refresh icons on visible buttons (icons may now be cached)
     for _, item in ipairs(UI._visibleButtons or {}) do
-      if item.btn.entry.id == itemID and item.btn.entry.type ~= "spell" then
-        item.btn.icon:SetTexture(data.GetEntryIcon(item.btn.entry))
+      if item.btn.entry.type ~= "spell" then
+        local tex = data.GetEntryIcon(item.btn.entry)
+        if tex then item.btn.icon:SetTexture(tex) end
       end
     end
 
@@ -84,7 +87,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
       QueueOrRun(function() UI:Refresh() end)
     end
 
-  elseif event == "SPELL_UPDATE_COOLDOWN" or event == "BAG_UPDATE_COOLDOWN" then
+  elseif event == "SPELL_UPDATE_COOLDOWN" then
     if UI.frame and UI.frame:IsShown() then
       UI:UpdateCooldowns()
     end
