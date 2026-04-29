@@ -1,0 +1,12 @@
+# WoW SavedVariables (don't commit user state)
+*.lua.bak
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
