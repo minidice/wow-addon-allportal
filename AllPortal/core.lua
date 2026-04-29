@@ -47,8 +47,16 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     if AllPortalDB.minimapHidden  == nil then AllPortalDB.minimapHidden  = false end
     if AllPortalDB.filterOwnedOnly == nil then AllPortalDB.filterOwnedOnly = false end
 
-    UI:Initialize()
-    AllPortal.minimap:Initialize()
+    local okUI, errUI = pcall(function() UI:Initialize() end)
+    if not okUI then
+      print("|cffff0000AllPortal UI error:|r " .. tostring(errUI))
+    end
+
+    local okMM, errMM = pcall(function() AllPortal.minimap:Initialize() end)
+    if not okMM then
+      print("|cffff0000AllPortal minimap error:|r " .. tostring(errMM))
+    end
+
     print("|cff00ff00AllPortal|r v" .. (GetAddOnMetadata(addonName, "Version") or "?") .. " loaded")
 
   elseif event == "PLAYER_ENTERING_WORLD" then

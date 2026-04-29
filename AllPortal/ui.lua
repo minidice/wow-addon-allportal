@@ -54,7 +54,10 @@ resizer:SetScript("OnMouseUp", function()
   if UI.RelayoutGrid then UI:RelayoutGrid() end
 end)
 
-frame.TitleText:SetText(A.T and A.T.addon_title or "AllPortal")
+-- TitleText location changed in Dragonflight (10.x)+: now nested under TitleContainer
+local _titleText = frame.TitleText
+    or (frame.TitleContainer and frame.TitleContainer.TitleText)
+if _titleText then _titleText:SetText(A.T and A.T.addon_title or "AllPortal") end
 
 tinsert(UISpecialFrames, "AllPortalMainFrame")
 
@@ -66,9 +69,12 @@ UI.frame = frame
 local filterCB = CreateFrame("CheckButton", "AllPortalFilterCheckbox", frame, "UICheckButtonTemplate")
 filterCB:SetSize(20, 20)
 filterCB:SetPoint("TOPLEFT", 12, -28)
-filterCB.text:SetText(A.T and A.T.show_owned_only or "Show owned only")
-filterCB.text:SetFontObject("GameFontNormal")
-filterCB:SetHitRectInsets(0, -filterCB.text:GetStringWidth() - 4, 0, 0)
+
+-- Template text child name varies by WoW version; create our own label to be safe
+local filterLabel = filterCB:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+filterLabel:SetPoint("LEFT", filterCB, "RIGHT", 4, 0)
+filterLabel:SetText(A.T and A.T.show_owned_only or "Show owned only")
+UI.filterLabel = filterLabel
 
 filterCB:SetScript("OnClick", function(self)
   local checked = self:GetChecked() and true or false
