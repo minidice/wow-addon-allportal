@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="ALLPORTAL_TOGGLE" header="ALLPORTAL" category="ADDONS">
+    AllPortal.ui:Toggle()
+  </Binding>
+</Bindings>

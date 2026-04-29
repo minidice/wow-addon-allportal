@@ -9,3 +9,6 @@
 
 data.lua
 core.lua
+ui.lua
+minimap.lua
+bindings.xml
