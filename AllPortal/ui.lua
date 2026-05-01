@@ -10,6 +10,9 @@ local HEARTH_MIN_W = 700
 local HEARTH_MIN_H = 460
 local OPEN_UI_ICON = 135743
 local RANDOM_HEARTH_ICON = 3193420
+local RANDOM_HEARTH_MACRO_NAME = "Random Hearth AP"
+local RANDOM_HEARTH_LEGACY_MACRO_NAME = "Random Hearth"
+local RANDOM_HEARTH_MACRO_BODY = "/click AllPortalRandomHearthActionButton"
 
 local function ApplyIconButtonFeedback(btn, target)
   local parent = target:GetParent() or btn
@@ -157,6 +160,24 @@ local function PickupMacroButton(name, icon, body)
   end
 end
 
+local function NormalizeRandomHearthMacro()
+  if InCombatLockdown() or not GetMacroIndexByName or not GetMacroInfo or not EditMacro then return end
+
+  local currentIndex = GetMacroIndexByName(RANDOM_HEARTH_MACRO_NAME)
+  if currentIndex and currentIndex > 0 then
+    EditMacro(currentIndex, RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, RANDOM_HEARTH_MACRO_BODY, 1)
+    return
+  end
+
+  local legacyIndex = GetMacroIndexByName(RANDOM_HEARTH_LEGACY_MACRO_NAME)
+  if not legacyIndex or legacyIndex <= 0 then return end
+
+  local _, _, legacyBody = GetMacroInfo(legacyIndex)
+  if legacyBody and string.find(legacyBody, "AllPortalRandomHearthActionButton", 1, true) then
+    EditMacro(legacyIndex, RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, RANDOM_HEARTH_MACRO_BODY, 1)
+  end
+end
+
 local function CreateHeaderActionButton(name, icon, macroText, tooltipText, dragName, dragMacroText, dragIcon, tooltipLines)
   local btn = CreateFrame("Button", name, frame, "SecureActionButtonTemplate")
   btn:SetSize(34, 34)
@@ -222,10 +243,10 @@ UI.openButton = openButton
 local randomHearthButton = CreateHeaderActionButton(
   "AllPortalRandomHearthActionButton",
   RANDOM_HEARTH_ICON,
-  "/click AllPortalRandomHearthActionButton",
+  RANDOM_HEARTH_MACRO_BODY,
   A.T and A.T.hearth_random or "Random Hearth",
-  "Random Hearth",
-  "/click AllPortalRandomHearthActionButton",
+  RANDOM_HEARTH_MACRO_NAME,
+  RANDOM_HEARTH_MACRO_BODY,
   RANDOM_HEARTH_ICON,
   {
     A.T and A.T.hearth_random_tip or "Uses one of your favorite hearthstones at random.",
@@ -303,7 +324,7 @@ randomHearthButton:SetScript("PostClick", function(self)
   PrepareRandomHearthButton(self)
 end)
 randomHearthButton:SetScript("OnDragStart", function()
-  PickupMacroButton("Random Hearth", RANDOM_HEARTH_ICON, "/click AllPortalRandomHearthActionButton")
+  PickupMacroButton(RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, RANDOM_HEARTH_MACRO_BODY)
 end)
 
 function UI:RestoreFilterCheckbox()
@@ -1191,6 +1212,7 @@ end
 
 function UI:Initialize()
   if self._initialized then return end
+  NormalizeRandomHearthMacro()
   self:BuildPool()
   self:RestoreFromDB()
   self:RestoreFilterCheckbox()
