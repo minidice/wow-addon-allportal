@@ -4,7 +4,7 @@
 ## Notes: Toolbar for portals, toys and use items
 ## Notes-koKR: 포탈, 장난감, 사용 아이템 통합 툴바
 ## Author: minidice
-## Version: 1.0.4
+## Version: 1.0.5
 ## IconTexture: Interface\Icons\Spell_Arcane_PortalDalaran
 ## SavedVariables: AllPortalDB
 ## Category: Collections
