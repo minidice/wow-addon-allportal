@@ -11,6 +11,40 @@ local HEARTH_MIN_H = 460
 local OPEN_UI_ICON = 135743
 local RANDOM_HEARTH_ICON = 3193420
 
+local function ApplyIconButtonFeedback(btn, target)
+  local parent = target:GetParent() or btn
+
+  local hover = parent:CreateTexture(nil, "OVERLAY", nil, 6)
+  hover:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
+  hover:SetBlendMode("ADD")
+  hover:SetAllPoints(target)
+  hover:Hide()
+
+  local pushed = parent:CreateTexture(nil, "OVERLAY", nil, 7)
+  pushed:SetTexture("Interface\\Buttons\\UI-Quickslot-Depress")
+  pushed:SetAllPoints(target)
+  pushed:SetAlpha(0.85)
+  pushed:Hide()
+
+  btn:HookScript("OnEnter", function()
+    hover:Show()
+  end)
+  btn:HookScript("OnLeave", function()
+    hover:Hide()
+    pushed:Hide()
+  end)
+  btn:HookScript("OnMouseDown", function()
+    pushed:Show()
+  end)
+  btn:HookScript("OnMouseUp", function()
+    pushed:Hide()
+  end)
+  btn:HookScript("OnHide", function()
+    hover:Hide()
+    pushed:Hide()
+  end)
+end
+
 -- ============================================================
 -- Main frame
 -- ============================================================
@@ -137,16 +171,7 @@ local function CreateHeaderActionButton(name, icon, macroText, tooltipText, drag
   btn.icon:SetTexture(icon)
   btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-  btn.border = btn:CreateTexture(nil, "OVERLAY")
-  btn.border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
-  btn.border:SetSize(52, 52)
-  btn.border:SetPoint("CENTER")
-
-  btn:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
-  local pushed = btn:GetPushedTexture()
-  pushed:SetSize(52, 52)
-  pushed:ClearAllPoints()
-  pushed:SetPoint("CENTER")
+  ApplyIconButtonFeedback(btn, btn.icon)
 
   btn.cooldown = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
   btn.cooldown:SetAllPoints(btn.icon)
@@ -413,38 +438,6 @@ rightPanel:SetPoint("TOPLEFT", leftPanel, "TOPRIGHT", 4, 0)
 rightPanel:SetPoint("BOTTOMRIGHT", -8, 8)
 UI.rightPanel = rightPanel
 
-local hearthInfoPanel = CreateFrame("Frame", nil, rightPanel, "BackdropTemplate")
-hearthInfoPanel:SetPoint("TOPLEFT", 6, -6)
-hearthInfoPanel:SetPoint("TOPRIGHT", -28, -6)
-hearthInfoPanel:SetHeight(112)
-hearthInfoPanel:SetBackdrop({
-  bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-  edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-  tile = true,
-  tileSize = 16,
-  edgeSize = 12,
-  insets = { left = 3, right = 3, top = 3, bottom = 3 },
-})
-hearthInfoPanel:SetBackdropColor(0.04, 0.28, 0.38, 0.92)
-hearthInfoPanel:SetBackdropBorderColor(0.45, 0.72, 0.78, 0.85)
-hearthInfoPanel:Hide()
-UI.hearthInfoPanel = hearthInfoPanel
-
-local hearthInfoTitle = hearthInfoPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-hearthInfoTitle:SetPoint("TOPLEFT", 10, -10)
-hearthInfoTitle:SetPoint("RIGHT", -10, 0)
-hearthInfoTitle:SetJustifyH("LEFT")
-hearthInfoTitle:SetText(A.T and A.T.hearthstones or "Hearthstones")
-
-local hearthInfoText = hearthInfoPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-hearthInfoText:SetPoint("TOPLEFT", hearthInfoTitle, "BOTTOMLEFT", 0, -8)
-hearthInfoText:SetPoint("RIGHT", -10, 0)
-hearthInfoText:SetJustifyH("LEFT")
-hearthInfoText:SetJustifyV("TOP")
-hearthInfoText:SetText(A.T and A.T.hearth_hint or "")
-hearthInfoText:SetHeight(44)
-UI.hearthInfoText = hearthInfoText
-
 local RefreshHearthPanel
 local ApplyHearthFavoriteSelection
 local hearthRows = {}
@@ -453,22 +446,6 @@ local hearthOffset = 0
 local hearthSearchText = ""
 local hearthVisibleCols = 1
 local UpdateHearthBulkLabels
-
-local hearthSearchSlot = CreateFrame("Frame", nil, hearthInfoPanel, "BackdropTemplate")
-hearthSearchSlot:SetPoint("BOTTOMLEFT", 10, 10)
-hearthSearchSlot:SetPoint("BOTTOMRIGHT", -10, 10)
-hearthSearchSlot:SetHeight(24)
-hearthSearchSlot:SetBackdrop({
-  bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-  edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-  tile = true,
-  tileSize = 16,
-  edgeSize = 8,
-  insets = { left = 2, right = 2, top = 2, bottom = 2 },
-})
-hearthSearchSlot:SetBackdropColor(0.02, 0.06, 0.08, 0.65)
-hearthSearchSlot:SetBackdropBorderColor(0.32, 0.52, 0.58, 0.7)
-UI.hearthSearchSlot = hearthSearchSlot
 
 local scrollFrame = CreateFrame("ScrollFrame", "AllPortalScroll", rightPanel, "UIPanelScrollFrameTemplate")
 scrollFrame:SetPoint("TOPLEFT", 4, -4)
@@ -640,17 +617,6 @@ hearthClearAllButton:SetScript("OnClick", function()
   if ApplyHearthFavoriteSelection then ApplyHearthFavoriteSelection(false) end
 end)
 
-local hearthScrollFrame = CreateFrame("ScrollFrame", "AllPortalHearthScroll", hearthPanel, "UIPanelScrollFrameTemplate")
-hearthScrollFrame:SetPoint("TOPLEFT", hearthBulkFrame, "BOTTOMLEFT", -4, -8)
-hearthScrollFrame:SetPoint("BOTTOMRIGHT", hearthPanel, "BOTTOMRIGHT", -24, 6)
-
-local hearthChild = CreateFrame("Frame", nil, hearthScrollFrame)
-hearthChild:SetSize(1, 1)
-hearthScrollFrame:SetScrollChild(hearthChild)
-UI.hearthScrollFrame = hearthScrollFrame
-UI.hearthChild = hearthChild
-hearthScrollFrame:Hide()
-
 local hearthListFrame = CreateFrame("Frame", nil, hearthPanel)
 hearthListFrame:SetPoint("TOPLEFT", hearthBulkFrame, "BOTTOMLEFT", 0, -8)
 hearthListFrame:SetPoint("BOTTOMRIGHT", hearthPanel, "BOTTOMRIGHT", -10, 8)
@@ -709,11 +675,6 @@ local function CreateIconFrame(parent, x)
   iconFrame.icon:SetPoint("CENTER")
   iconFrame.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-  iconFrame.border = iconFrame:CreateTexture(nil, "OVERLAY")
-  iconFrame.border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
-  iconFrame.border:SetSize(ICON_SIZE * 1.75, ICON_SIZE * 1.75)
-  iconFrame.border:SetPoint("CENTER")
-
   return iconFrame
 end
 
@@ -749,11 +710,7 @@ local function CreateSpellPairButton(parent, entry)
     btn.icon = iconFrame.icon
     ApplySpellAttributes(btn, spell)
 
-    btn:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
-    local pushed = btn:GetPushedTexture()
-    pushed:SetSize(ICON_SIZE * 1.75, ICON_SIZE * 1.75)
-    pushed:ClearAllPoints()
-    pushed:SetPoint("CENTER", iconFrame, "CENTER")
+    ApplyIconButtonFeedback(btn, iconFrame.icon)
 
     btn.cooldown = CreateFrame("Cooldown", nil, iconFrame, "CooldownFrameTemplate")
     btn.cooldown:SetAllPoints(iconFrame)
@@ -826,18 +783,6 @@ local function UpdateEntryVisualState(btn)
     return
   end
 
-  if btn.favoriteMark then
-    if A.data.IsHearthFavorite and A.data.IsHearthFavorite(btn.entry) then
-      btn.favoriteMark:Show()
-    else
-      btn.favoriteMark:Hide()
-    end
-  end
-  if btn.favoriteButton then
-    local isFav = A.data.IsHearthFavorite and A.data.IsHearthFavorite(btn.entry)
-    btn.favoriteButton.text:SetTextColor(isFav and 1 or 0.45, isFav and 0.82 or 0.45, isFav and 0.18 or 0.45)
-  end
-
   local usable = A.data.IsEntryOwned(btn.entry)
   if btn.entry and btn.entry.type == "house" and not InCombatLockdown() then
     ApplyHouseAttributes(btn, btn.entry)
@@ -892,22 +837,7 @@ local function CreateActionButton(parent, entry)
   btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
   btn.icon:SetTexture(A.data.GetEntryIcon(entry) or "Interface\\Icons\\INV_Misc_QuestionMark")
 
-  btn.iconBorder = btn.iconFrame:CreateTexture(nil, "OVERLAY")
-  btn.iconBorder:SetTexture("Interface\\Buttons\\UI-Quickslot2")
-  btn.iconBorder:SetSize(ICON_SIZE * 1.75, ICON_SIZE * 1.75)
-  btn.iconBorder:SetPoint("CENTER")
-
-  btn.favoriteMark = btn.iconFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  btn.favoriteMark:SetPoint("TOPLEFT", btn.iconFrame, "TOPLEFT", -3, 4)
-  btn.favoriteMark:SetText("*")
-  btn.favoriteMark:SetTextColor(1, 0.82, 0.18)
-  btn.favoriteMark:Hide()
-
-  btn:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
-  local pushed = btn:GetPushedTexture()
-  pushed:SetSize(ICON_SIZE * 1.75, ICON_SIZE * 1.75)
-  pushed:ClearAllPoints()
-  pushed:SetPoint("CENTER", btn.iconFrame, "CENTER")
+  ApplyIconButtonFeedback(btn, btn.icon)
 
   btn.label = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   btn.label:SetPoint("LEFT", btn.iconFrame, "RIGHT", 10, 0)
@@ -915,38 +845,6 @@ local function CreateActionButton(parent, entry)
   btn.label:SetJustifyH("LEFT")
   btn.label:SetTextColor(NAME_TEXT[1], NAME_TEXT[2], NAME_TEXT[3])
   btn.label:SetText(A.data.GetEntryDisplayName(entry))
-
-  if entry.hearthstone then
-    local fav = CreateFrame("Button", nil, btn)
-    fav:SetSize(22, 22)
-    fav:SetPoint("RIGHT", btn, "RIGHT", -6, 0)
-    fav:SetFrameLevel(btn:GetFrameLevel() + 5)
-    fav.entry = entry
-
-    fav.text = fav:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    fav.text:SetPoint("CENTER", 0, 1)
-    fav.text:SetText("*")
-
-    fav:SetScript("OnClick", function(self)
-      local result = A.data.ToggleHearthFavorite and A.data.ToggleHearthFavorite(self.entry)
-      if result == nil then return end
-      UpdateEntryVisualState(btn)
-      if result then
-        print("|cff00ff00AllPortal:|r " .. (A.T and A.T.hearth_fav_added or "Added to random hearth favorites."))
-      else
-        print("|cff00ff00AllPortal:|r " .. (A.T and A.T.hearth_fav_removed or "Removed from random hearth favorites."))
-      end
-    end)
-    fav:SetScript("OnEnter", function(self)
-      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-      GameTooltip:SetText(A.T and A.T.hearth_hint or "Right-click to favorite.")
-      GameTooltip:Show()
-    end)
-    fav:SetScript("OnLeave", GameTooltip_Hide)
-
-    btn.favoriteButton = fav
-    btn.label:SetPoint("RIGHT", fav, "LEFT", -4, 0)
-  end
 
   btn.cooldown = CreateFrame("Cooldown", nil, btn.iconFrame, "CooldownFrameTemplate")
   btn.cooldown:SetAllPoints(btn.iconFrame)
@@ -967,10 +865,6 @@ local function CreateActionButton(parent, entry)
       GameTooltip:SetToyByItemID(entry.id)
     elseif entry.type == "item" then
       GameTooltip:SetItemByID(entry.id)
-    end
-    if entry.hearthstone then
-      GameTooltip:AddLine(" ")
-      GameTooltip:AddLine(A.T and A.T.hearth_hint or "Right-click to favorite.", 0.85, 0.75, 0.45, true)
     end
     GameTooltip:Show()
   end)
@@ -1048,13 +942,6 @@ function UI:ScheduleNameRefresh()
       if UI.frame and UI.frame:IsShown() then UI:RefreshLabels() end
     end)
   end
-end
-
-local function GetGridButtonWidth(catId, available)
-  if catId == "hearthstones" then
-    return math.max(BTN_W, available)
-  end
-  return BTN_W
 end
 
 local HEARTH_ROW_H = 42
@@ -1346,7 +1233,6 @@ local function ApplyCategoryLayout(catId)
     end
     frame:SetSize(math.max(frame:GetWidth(), HEARTH_MIN_W), math.max(frame:GetHeight(), HEARTH_MIN_H))
 
-    hearthInfoPanel:Hide()
     scrollFrame:Hide()
     hearthPanel:Show()
     RefreshHearthPanel()
@@ -1368,7 +1254,6 @@ local function ApplyCategoryLayout(catId)
       UI._preHearthHeight = nil
     end
 
-    hearthInfoPanel:Hide()
     hearthPanel:Hide()
     scrollFrame:Show()
     scrollFrame:SetPoint("TOPLEFT", rightPanel, "TOPLEFT", 4, -4)
@@ -1385,7 +1270,7 @@ function UI:RelayoutGrid()
 
   local panelW = scrollFrame:GetWidth()
   local available = panelW - RIGHT_PADDING_L * 2
-  local itemW = GetGridButtonWidth(self.currentCategoryId, available)
+  local itemW = BTN_W
   local cols = math.max(1, math.min(5, math.floor((available + BTN_SPACING) / (itemW + BTN_SPACING))))
 
   local x, y = RIGHT_PADDING_L, -RIGHT_PADDING_L
