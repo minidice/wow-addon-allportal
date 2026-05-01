@@ -1,12 +1,17 @@
-# WoW SavedVariables (don't commit user state)
+# Lua backup files
 *.lua.bak
 
-# Editor
+# Editor files
 .vscode/
 .idea/
 *.swp
 *~
 
-# OS
+# Local reference and release artifacts
+Docs/
+Images/
+Releases/
+
+# OS files
 .DS_Store
 Thumbs.db
