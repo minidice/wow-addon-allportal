@@ -493,6 +493,14 @@ function A.data.IsHearthFavorite(entry)
   return key and AllPortalDB and AllPortalDB.hearthFavorites and AllPortalDB.hearthFavorites[key]
 end
 
+function A.data.HasHearthFavorites()
+  if not AllPortalDB or not AllPortalDB.hearthFavorites then return false end
+  for _, checked in pairs(AllPortalDB.hearthFavorites) do
+    if checked then return true end
+  end
+  return false
+end
+
 function A.data.IsBaseHearthstone(entry)
   return entry and entry.type == "item" and entry.id == 6948
 end

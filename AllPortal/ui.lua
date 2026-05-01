@@ -248,14 +248,15 @@ end
 local function PrepareRandomHearthButton(btn)
   local T = A.T or {}
   local candidates = A.data.GetUsableFavoriteHearthstones and A.data.GetUsableFavoriteHearthstones() or {}
-  if #candidates == 0 and A.data.GetUsableHearthstoneToys then
+  local hasFavorites = A.data.HasHearthFavorites and A.data.HasHearthFavorites()
+  if #candidates == 0 and not hasFavorites and A.data.GetUsableHearthstoneToys then
     candidates = A.data.GetUsableHearthstoneToys()
   end
 
   local entry = nil
   if #candidates > 0 then
     entry = candidates[math.random(#candidates)]
-  else
+  elseif not hasFavorites then
     local base = A.data.GetBaseHearthstone and A.data.GetBaseHearthstone()
     if base and A.data.IsEntryOwned(base) then
       entry = base
@@ -264,7 +265,7 @@ local function PrepareRandomHearthButton(btn)
 
   if not entry then
     ClearRandomHearthButton(btn)
-    print("|cff00ff00AllPortal:|r " .. (T.hearth_no_fav or "No usable favorite hearthstones."))
+    print("|cff00ff00AllPortal:|r " .. (T.hearth_no_fav or "No usable hearthstone items."))
     return
   end
 
@@ -295,6 +296,9 @@ randomHearthButton:SetAttribute("type", nil)
 randomHearthButton:SetAttribute("macrotext", nil)
 randomHearthButton:RegisterForClicks("AnyDown")
 randomHearthButton:SetAttribute("pressAndHoldAction", true)
+randomHearthButton:SetScript("PreClick", function(self)
+  PrepareRandomHearthButton(self)
+end)
 randomHearthButton:SetScript("PostClick", function(self)
   PrepareRandomHearthButton(self)
 end)
@@ -1449,9 +1453,10 @@ function UI:UpdateRandomHearthCooldown()
   local entry = btn._cooldownEntry
   if not entry then
     local favorites = A.data.GetUsableFavoriteHearthstones and A.data.GetUsableFavoriteHearthstones() or {}
+    local hasFavorites = A.data.HasHearthFavorites and A.data.HasHearthFavorites()
     if #favorites > 0 then
       entry = favorites[1]
-    else
+    elseif not hasFavorites then
       local toys = A.data.GetUsableHearthstoneToys and A.data.GetUsableHearthstoneToys() or {}
       entry = toys[1] or (A.data.GetBaseHearthstone and A.data.GetBaseHearthstone())
     end
