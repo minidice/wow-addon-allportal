@@ -10,9 +10,17 @@ local HEARTH_MIN_W = 700
 local HEARTH_MIN_H = 460
 local OPEN_UI_ICON = 135743
 local RANDOM_HEARTH_ICON = 3193420
+local RANDOM_HEARTH_ACTION_BUTTON_NAME = "AllPortalRandomHearthActionButton"
 local RANDOM_HEARTH_MACRO_NAME = "Random Hearth AP"
 local RANDOM_HEARTH_LEGACY_MACRO_NAME = "Random Hearth"
-local RANDOM_HEARTH_MACRO_BODY = "/click AllPortalRandomHearthActionButton"
+local RANDOM_HEARTH_CLICK_BODY = "/click " .. RANDOM_HEARTH_ACTION_BUTTON_NAME
+
+local function GetRandomHearthMacroBody(entry)
+  if entry and entry.id then
+    return "#showtooltip item:" .. entry.id .. "\n" .. RANDOM_HEARTH_CLICK_BODY
+  end
+  return "#showtooltip\n" .. RANDOM_HEARTH_CLICK_BODY
+end
 
 local function ApplyIconButtonFeedback(btn, target)
   local parent = target:GetParent() or btn
@@ -165,7 +173,7 @@ local function NormalizeRandomHearthMacro()
 
   local currentIndex = GetMacroIndexByName(RANDOM_HEARTH_MACRO_NAME)
   if currentIndex and currentIndex > 0 then
-    EditMacro(currentIndex, RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, RANDOM_HEARTH_MACRO_BODY, 1)
+    EditMacro(currentIndex, RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, GetRandomHearthMacroBody(UI.randomHearthButton and UI.randomHearthButton._cooldownEntry), 1)
     return
   end
 
@@ -174,7 +182,7 @@ local function NormalizeRandomHearthMacro()
 
   local _, _, legacyBody = GetMacroInfo(legacyIndex)
   if legacyBody and string.find(legacyBody, "AllPortalRandomHearthActionButton", 1, true) then
-    EditMacro(legacyIndex, RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, RANDOM_HEARTH_MACRO_BODY, 1)
+    EditMacro(legacyIndex, RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, GetRandomHearthMacroBody(UI.randomHearthButton and UI.randomHearthButton._cooldownEntry), 1)
   end
 end
 
@@ -241,12 +249,12 @@ end)
 UI.openButton = openButton
 
 local randomHearthButton = CreateHeaderActionButton(
-  "AllPortalRandomHearthActionButton",
+  "AllPortalRandomHearthLauncherButton",
   RANDOM_HEARTH_ICON,
-  RANDOM_HEARTH_MACRO_BODY,
+  GetRandomHearthMacroBody(),
   A.T and A.T.hearth_random or "Random Hearth",
   RANDOM_HEARTH_MACRO_NAME,
-  RANDOM_HEARTH_MACRO_BODY,
+  GetRandomHearthMacroBody(),
   RANDOM_HEARTH_ICON,
   {
     A.T and A.T.hearth_random_tip or "Uses one of your favorite hearthstones at random.",
@@ -256,17 +264,28 @@ local randomHearthButton = CreateHeaderActionButton(
 randomHearthButton:SetPoint("RIGHT", openButton, "LEFT", -2, 0)
 UI.randomHearthButton = randomHearthButton
 
+local randomHearthExecuteButton = CreateFrame("Button", RANDOM_HEARTH_ACTION_BUTTON_NAME, UIParent, "SecureActionButtonTemplate")
+randomHearthExecuteButton:SetSize(1, 1)
+randomHearthExecuteButton:SetPoint("TOPLEFT", UIParent, "TOPLEFT", -100, -100)
+randomHearthExecuteButton:SetAlpha(0)
+randomHearthExecuteButton:Show()
+randomHearthExecuteButton.displayButton = randomHearthButton
+UI.randomHearthExecuteButton = randomHearthExecuteButton
+
 local function ClearRandomHearthButton(btn)
+  local display = btn.displayButton or btn
   btn:SetAttribute("type", nil)
   btn:SetAttribute("typerelease", nil)
   btn:SetAttribute("toy", nil)
   btn:SetAttribute("item", nil)
   btn._cooldownEntry = nil
-  if btn.cooldown then btn.cooldown:Clear() end
-  if btn.cdText then btn.cdText:SetText("") end
+  display._cooldownEntry = nil
+  if display.cooldown then display.cooldown:Clear() end
+  if display.cdText then display.cdText:SetText("") end
 end
 
 local function PrepareRandomHearthButton(btn)
+  local display = btn.displayButton or btn
   local T = A.T or {}
   local candidates = A.data.GetUsableFavoriteHearthstones and A.data.GetUsableFavoriteHearthstones() or {}
   local hasFavorites = A.data.HasHearthFavorites and A.data.HasHearthFavorites()
@@ -308,23 +327,33 @@ local function PrepareRandomHearthButton(btn)
   end
 
   local icon = A.data.GetEntryIcon and A.data.GetEntryIcon(entry)
-  if icon then btn.icon:SetTexture(icon) end
+  if icon and display.icon then display.icon:SetTexture(icon) end
   btn._cooldownEntry = entry
+  display._cooldownEntry = entry
+  if not InCombatLockdown() and GetMacroIndexByName and EditMacro then
+    local macroIndex = GetMacroIndexByName(RANDOM_HEARTH_MACRO_NAME)
+    if macroIndex and macroIndex > 0 then
+      EditMacro(macroIndex, RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, GetRandomHearthMacroBody(entry), 1)
+    end
+  end
+  if not InCombatLockdown() then
+    randomHearthButton:SetAttribute("macrotext", GetRandomHearthMacroBody(entry))
+  end
   if UI.UpdateRandomHearthCooldown then UI:UpdateRandomHearthCooldown() end
 end
 
-randomHearthButton:SetAttribute("type", nil)
-randomHearthButton:SetAttribute("macrotext", nil)
-randomHearthButton:RegisterForClicks("AnyDown")
-randomHearthButton:SetAttribute("pressAndHoldAction", true)
-randomHearthButton:SetScript("PreClick", function(self)
+randomHearthExecuteButton:SetAttribute("type", nil)
+randomHearthExecuteButton:SetAttribute("macrotext", nil)
+randomHearthExecuteButton:RegisterForClicks("AnyDown")
+randomHearthExecuteButton:SetAttribute("pressAndHoldAction", true)
+randomHearthExecuteButton:SetScript("PreClick", function(self)
   PrepareRandomHearthButton(self)
 end)
-randomHearthButton:SetScript("PostClick", function(self)
-  PrepareRandomHearthButton(self)
+randomHearthExecuteButton:SetScript("PostClick", function()
+  if UI.UpdateRandomHearthCooldown then UI:UpdateRandomHearthCooldown() end
 end)
 randomHearthButton:SetScript("OnDragStart", function()
-  PickupMacroButton(RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, RANDOM_HEARTH_MACRO_BODY)
+  PickupMacroButton(RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, GetRandomHearthMacroBody(randomHearthButton._cooldownEntry))
 end)
 
 function UI:RestoreFilterCheckbox()
@@ -1031,8 +1060,8 @@ local function CreateHearthRow(parent, entry)
     else
       print("|cff00ff00AllPortal:|r " .. (A.T and A.T.hearth_fav_removed or "Removed from random hearth favorites."))
     end
-    if UI.randomHearthButton then
-      PrepareRandomHearthButton(UI.randomHearthButton)
+    if UI.randomHearthExecuteButton then
+      PrepareRandomHearthButton(UI.randomHearthExecuteButton)
     end
   end)
 
@@ -1071,8 +1100,8 @@ ApplyHearthFavoriteSelection = function(checked)
 
   hearthOffset = 0
   RefreshHearthPanel()
-  if UI.randomHearthButton then
-    PrepareRandomHearthButton(UI.randomHearthButton)
+  if UI.randomHearthExecuteButton then
+    PrepareRandomHearthButton(UI.randomHearthExecuteButton)
   end
 end
 
@@ -1217,8 +1246,8 @@ function UI:Initialize()
   self:RestoreFromDB()
   self:RestoreFilterCheckbox()
   self:BuildCategoryList()
-  if self.randomHearthButton then
-    PrepareRandomHearthButton(self.randomHearthButton)
+  if self.randomHearthExecuteButton then
+    PrepareRandomHearthButton(self.randomHearthExecuteButton)
   end
   self._initialized = true
 end
