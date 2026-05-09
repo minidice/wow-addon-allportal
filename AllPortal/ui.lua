@@ -10,7 +10,7 @@ local HEARTH_MIN_W = 700
 local HEARTH_MIN_H = 460
 local OPEN_UI_ICON = 135743
 local RANDOM_HEARTH_ICON = 3193420
-local RANDOM_HEARTH_ACTION_BUTTON_NAME = "AllPortalRandomHearthExec"
+local RANDOM_HEARTH_ACTION_BUTTON_NAME = "APRHX"
 local RANDOM_HEARTH_MACRO_NAME = "Random Hearth AP"
 local RANDOM_HEARTH_LEGACY_MACRO_NAME = "Random Hearth"
 local RANDOM_HEARTH_CLICK_BODY = "/click " .. RANDOM_HEARTH_ACTION_BUTTON_NAME
@@ -181,7 +181,13 @@ local function NormalizeRandomHearthMacro()
   if not legacyIndex or legacyIndex <= 0 then return end
 
   local _, _, legacyBody = GetMacroInfo(legacyIndex)
-  if legacyBody and string.find(legacyBody, "AllPortalRandomHearthActionButton", 1, true) then
+  if legacyBody
+    and (
+      string.find(legacyBody, "AllPortalRandomHearthActionButton", 1, true)
+      or string.find(legacyBody, "AllPortalRandomHearthExec", 1, true)
+      or string.find(legacyBody, RANDOM_HEARTH_ACTION_BUTTON_NAME, 1, true)
+    )
+  then
     EditMacro(legacyIndex, RANDOM_HEARTH_MACRO_NAME, RANDOM_HEARTH_ICON, GetRandomHearthMacroBody(UI.randomHearthButton and UI.randomHearthButton._cooldownEntry), 1)
   end
 end
