@@ -1,4 +1,4 @@
-## Interface: 120007
+## Interface: 120007, 120100
 ## Title: AllPortal
 ## Title-koKR: 올포탈
 ## Notes: Toolbar for portals, toys and use items
